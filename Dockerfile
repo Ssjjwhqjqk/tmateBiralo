@@ -1,43 +1,26 @@
-FROM ubuntu:latest
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install required packages
 RUN apt-get update && \
-    apt-get install -y \
-    tmate \
-    nginx \
-    python3 \
-    neofetch \
-    nano \
-    iproute2 \
-    curl \
-    wget \
-    git \
-    make \
-    openssh-server \
-    dos2unix && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    apt-get install -y tmate openssh-server nginx curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-WORKDIR /root
-
-# SSH server setup
-RUN sed -i 's/#Port 22/Port 22/g' /etc/ssh/sshd_config && \
-    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config && \
+# Configure sshd
+RUN mkdir /var/run/sshd && \
+    sed -i 's/#Port 22/Port 22/' /etc/ssh/sshd_config && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     echo 'root:123456' | chpasswd
 
-# Prepare web directory
-RUN mkdir -p /var/www/html
+# Setup nginx to serve /var/www/html with inline config
+RUN rm /etc/nginx/sites-enabled/default && \
+    echo 'server { listen 80; root /var/www/html; index index.html; location / { try_files $uri $uri/ =404; } }' > /etc/nginx/sites-enabled/default
 
-# Replace default Nginx config
-RUN echo 'server { listen 80; location / { root /var/www/html; try_files $uri $uri/ =404; } }' > /etc/nginx/sites-available/default
-
-# Copy and fix start.sh
+# Copy start script
 COPY start.sh /start.sh
-RUN dos2unix /start.sh && chmod +x /start.sh
+RUN chmod +x /start.sh
 
-# Expose HTTP port
-EXPOSE 80
+EXPOSE 80 22
 
-# Run the startup script
 CMD ["/start.sh"]
