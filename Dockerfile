@@ -15,15 +15,11 @@ RUN apt-get update && \
     wget \
     git \
     make \
-    openssh-server && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    openssh-server \
+    dos2unix && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /root
-
-# Custom welcome message
-RUN echo "Welcome to your VPS via tmate on Render!" > /etc/motd
 
 # SSH server setup
 RUN sed -i 's/#Port 22/Port 22/g' /etc/ssh/sshd_config && \
@@ -36,12 +32,12 @@ RUN mkdir -p /var/www/html
 # Replace default Nginx config
 RUN echo 'server { listen 80; location / { root /var/www/html; try_files $uri $uri/ =404; } }' > /etc/nginx/sites-available/default
 
-# Copy startup script
+# Copy and fix start.sh
 COPY start.sh /start.sh
-RUN chmod +x /start.sh
+RUN dos2unix /start.sh && chmod +x /start.sh
 
 # Expose HTTP port
 EXPOSE 80
 
-# Start script
+# Run the startup script
 CMD ["/start.sh"]
