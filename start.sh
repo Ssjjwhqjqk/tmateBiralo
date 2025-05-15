@@ -2,34 +2,28 @@
 
 service ssh start
 
-# Start tmate session in detached mode with socket
 tmate -S /tmp/tmate.sock new-session -d
 
-echo "Waiting for tmate session..."
-
-# Wait up to 30 seconds for tmate SSH socket to be available
+# Wait for tmate session ready
 for i in {1..30}; do
-  tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}' && break
-  sleep 1
+    SSH_LINK=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}' 2>/dev/null)
+    WEB_LINK=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}' 2>/dev/null)
+    if [[ -n "$SSH_LINK" && -n "$WEB_LINK" ]]; then
+        break
+    fi
+    sleep 1
 done
 
-echo "tmate session info:"
-
-# Capture the info
-SSH_LINK=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')
-WEB_LINK=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')
-
-echo "SSH_LINK=$SSH_LINK"
-echo "WEB_LINK=$WEB_LINK"
-
-# Write HTML page with the links
-cat <<EOF > /var/www/html/index.html
+if [[ -z "$SSH_LINK" || -z "$WEB_LINK" ]]; then
+    echo "Failed to get tmate session links" > /var/www/html/index.html
+else
+    cat <<EOF > /var/www/html/index.html
 <h2>Your VPS is ready!</h2>
 <p>SSH connection:</p>
 <pre>$SSH_LINK</pre>
 <p>Web connection:</p>
 <pre>$WEB_LINK</pre>
 EOF
+fi
 
-# Start nginx
 nginx -g 'daemon off;'
