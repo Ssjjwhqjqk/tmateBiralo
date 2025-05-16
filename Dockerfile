@@ -1,16 +1,21 @@
-FROM almalinux:8
+FROM ubuntu:22.04
 
-# Install EPEL and tmate dependencies
-RUN yum install -y epel-release && \
-    yum install -y tmate openssh-server python3 && \
-    yum clean all
+# Install dependencies
+RUN apt update && \
+    apt install -y wget curl unzip openssh-client git python3 && \
+    apt clean
 
-# Set up dummy web server folder
-RUN mkdir -p /app && echo "Tmate session running" > /app/index.html
+# Download upterm
+RUN wget https://github.com/owenthereal/upterm/releases/latest/download/upterm-linux-amd64 -O /usr/local/bin/upterm && \
+    chmod +x /usr/local/bin/upterm
+
+# Dummy web server to keep Render service alive
+RUN mkdir -p /app && echo "Upterm session running..." > /app/index.html
 WORKDIR /app
 
-# Expose a web port to keep Render container alive
+# Set the port to keep the container alive
 EXPOSE 10000
 
-# Run HTTP server in background, then start tmate
-CMD python3 -m http.server 10000 & tmate -F
+# Command to launch dummy server and upterm session
+CMD python3 -m http.server 10000 & \
+    upterm host --force-command bash
