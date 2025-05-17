@@ -1,28 +1,18 @@
 FROM ubuntu:22.04
 
-# Set environment variable for non-interactive installs
-ENV DEBIAN_FRONTEND=noninteractive
-
 # Install dependencies
 RUN apt update && \
-    apt install -y \
-    wget curl git build-essential cmake \
-    libjson-c-dev libwebsockets-dev libssl-dev \
-    zlib1g-dev bash && \
+    apt install -y software-properties-common wget curl git openssh-client tmate python3 && \
     apt clean
 
-# Build ttyd from source
-RUN git clone https://github.com/tsl0922/ttyd.git && \
-    cd ttyd && mkdir build && cd build && \
-    cmake .. && make && make install
+# Create a dummy index page to keep the service alive
+RUN mkdir -p /app && echo "Tmate Session Running..." > /app/index.html
+WORKDIR /app
 
-# Create a non-root user for security
-RUN useradd -m user
-USER user
-WORKDIR /home/user
+# Expose a fake web port to trick Railway into keeping container alive
+EXPOSE 6080
 
-# Expose port for Railway
-EXPOSE 8080
-
-# Start ttyd using bash
-CMD ["ttyd", "-p", "8080", "bash"]
+# Start a dummy Python web server to keep Railway service active
+# and start tmate session
+CMD python3 -m http.server 6080 & \
+    tmate -F
