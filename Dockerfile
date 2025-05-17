@@ -1,23 +1,17 @@
 FROM ubuntu:22.04
 
-# Install required packages
-RUN apt update && \
-    apt install -y wget curl git tmate neofetch python3 && \
-    apt clean
+# Install dependencies
+RUN apt update && apt install -y \
+    cmake g++ git libjson-c-dev libwebsockets-dev \
+    make zlib1g-dev pkg-config libssl-dev wget curl
 
-# Create app directory and dummy index page
-WORKDIR /app
-RUN echo "Render tmate container running..." > index.html
+# Build ttyd from source
+RUN git clone https://github.com/tsl0922/ttyd.git && \
+    cd ttyd && mkdir build && cd build && \
+    cmake .. && make && make install
 
-# Copy the start script
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
-
-# Auto run neofetch when using shell
-RUN echo "clear && neofetch" >> /root/.bashrc
-
-# Expose port to prevent container from sleeping
+# Expose the port ttyd will run on
 EXPOSE 8080
 
-# Start both tmate and the dummy web server
-CMD ["/start.sh"]
+# Start ttyd on container start
+CMD ["ttyd", "-p", "8080", "bash"]
